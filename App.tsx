@@ -1,4 +1,4 @@
-
+ 
 import React, { useState, useRef, useEffect } from 'react';
 import { PostConfig, TextTransform } from './types';
 import { DEFAULT_CONFIG, calculatePostDimensions } from './constants';
