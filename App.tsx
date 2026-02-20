@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { PostConfig, TextTransform } from './types';
 import { DEFAULT_CONFIG, calculatePostDimensions } from './constants';
@@ -205,7 +205,11 @@ const App: React.FC = () => {
       const node = document.getElementById('post-preview-container');
       if (!node) return;
       
-      const { width, height } = calculatePostDimensions(activeConfig);
+      const { width: calcWidth, height: calcHeight } = calculatePostDimensions(activeConfig);
+      
+      // Use the actual height of the element to avoid cropping
+      const width = calcWidth;
+      const height = Math.max(calcHeight, node.scrollHeight, node.offsetHeight);
       
       // FORÇAR LARGURA E ALTURA PARA EVITAR CORTES NO RODA PÉ
       const dataUrl = await htmlToImage.toPng(node as HTMLElement, { 
@@ -238,7 +242,9 @@ const App: React.FC = () => {
         const node = document.getElementById('post-preview-container');
         if (!node) return;
         
-        const { width, height } = calculatePostDimensions(activeConfig);
+        const { width: calcWidth, height: calcHeight } = calculatePostDimensions(activeConfig);
+        const width = calcWidth;
+        const height = Math.max(calcHeight, node.scrollHeight, node.offsetHeight);
         
         // FORÇAR LARGURA E ALTURA PARA O PDF
         const dataUrl = await htmlToImage.toPng(node as HTMLElement, { 
