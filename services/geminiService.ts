@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedContent, PostConfig } from "../types";
 
@@ -216,40 +217,61 @@ export const generateDesignSystem = async (userPrompt: string): Promise<DesignSy
   }
 };
 
-export const generateAIBackground = async (prompt: string, style: string, aspectRatio: "9:16" | "4:5" | "1:1" = "9:16"): Promise<string> => {
+export const generateAIBackground = async (prompt: string, style: string, aspectRatio: "9:16" | "4:5" | "1:1" | "16:9" = "16:9"): Promise<string> => {
   try {
     // Advanced prompt engineering based on MARKETING goals for confectionary/distributors
     let stylePrompt = "";
     
-    if (style === 'auto') {
-        stylePrompt = "Professional advertising background for food/confectionery, high quality, appealing, clean copy space.";
-    } else {
-        switch (style) {
+    // Normalize style to lowercase for switch
+    const cleanStyle = style.toLowerCase();
+
+    switch (cleanStyle) {
+        // --- NEW REQUESTED STYLES ---
+        case 'gold':
+            stylePrompt = "Luxury gold foil texture, golden dust, premium metallic finish, elegant and sophisticated bokeh. Perfect for premium offers.";
+            break;
+        case 'nature':
+            stylePrompt = "Fresh natural vibes, green leaves, botanical patterns, soft wood textures, organic, sunlight dappled, farm-fresh feel.";
+            break;
+        case '3d':
+            stylePrompt = "Abstract 3D geometric shapes, soft pastel 3D render, modern depth, floating spheres or cubes, clean minimalist lighting.";
+            break;
+        case 'abstract':
+            stylePrompt = "Modern abstract art, fluid gradients, colorful waves, liquid motion, vibrant and artistic background.";
+            break;
+        case 'texture':
+            stylePrompt = "High quality tactile texture, paper grain, concrete, fabric, or canvas. Subtle, minimalist, focusing on material details.";
+            break;
+        case 'food':
+            stylePrompt = "Appetizing food background, flying ingredients (flour, cocoa powder, sugar), chocolate splashes, fresh fruits, macro photography of delicious elements.";
+            break;
+
+        // --- LEGACY STYLES (Keep for compatibility) ---
         case 'candy_world':
-            stylePrompt = "Fun and vibrant 'Candy World' theme. Colorful pastel background with flying confetti, marshmallows, or jelly beans in the periphery (bokeh). Pop-art style, high energy, appetizing, bright pinks, blues, and yellows. Perfect for kids' products.";
+            stylePrompt = "Fun and vibrant 'Candy World' theme. Colorful pastel background with flying confetti, marshmallows, or jelly beans in the periphery (bokeh). Pop-art style.";
             break;
         case 'choc_luxury':
-            stylePrompt = "Premium chocolate marketing background. Rich, silky melted chocolate waves or cocoa powder textures. Dark brown and gold color palette. Moody, sophisticated lighting to suggest high quality. Velvet textures.";
+            stylePrompt = "Premium chocolate marketing background. Rich, silky melted chocolate waves or cocoa powder textures. Dark brown and gold color palette.";
             break;
         case 'retail_bokeh':
-            stylePrompt = "Retail context background. Blurred supermarket aisle or shelves filled with colorful products (heavy bokeh/defocus). Bright, clean, white retail lighting. Suggests availability and variety. Neutral tones to keep focus on foreground product.";
+            stylePrompt = "Blurred supermarket aisle or shelves filled with colorful products (heavy bokeh/defocus). Bright, clean, white retail lighting.";
             break;
         case 'splash_fresh':
-            stylePrompt = "Energetic freshness. High-speed photography of a liquid splash (milk, fruit juice, or soda) or exploding ingredients. Dynamic motion, fresh water droplets. bright lighting, clean background.";
+            stylePrompt = "Energetic freshness. High-speed photography of a liquid splash (milk, fruit juice, or soda) or exploding ingredients.";
             break;
         case 'studio_soft':
-            stylePrompt = "Clean professional studio photography background. Soft abstract curves, gentle gradients in warm beige, cream, or light yellow. Minimalist, distraction-free, creating perfect negative space for text and prices.";
+            stylePrompt = "Clean professional studio photography background. Soft abstract curves, gentle gradients in warm beige, cream, or light yellow.";
             break;
+        case 'auto':
         default:
-            stylePrompt = "Professional product photography background, soft bokeh, neutral tones.";
-        }
+            stylePrompt = "Professional advertising background for food/confectionery, high quality, appealing, clean copy space.";
     }
 
-    const fullPrompt = `Create a professional advertising background image for a confectionery/food distributor flyer.
-    User's specific product focus: ${prompt}.
+    const fullPrompt = `Create a professional advertising background image for a flyer header.
+    Theme/Subject: ${prompt}.
     Art Direction Style: ${stylePrompt}.
-    Technical Specs: 8k resolution, photorealistic, highly detailed, commercial food photography lighting.
-    Composition Rule: The Center area MUST be relatively empty, soft focus, or negative space to allow for product overlay and heavy text placement. The busy elements should be on the edges.
+    Technical Specs: 8k resolution, photorealistic, commercial food photography lighting.
+    Composition Rule: The Center area MUST be relatively empty, soft focus, or negative space to allow for text overlay. The busy elements should be on the edges.
     Constraints: NO text in the image, NO watermarks, NO distorted human faces.`;
 
     const response = await ai.models.generateContent({
@@ -261,7 +283,7 @@ export const generateAIBackground = async (prompt: string, style: string, aspect
       },
       config: {
         imageConfig: {
-          aspectRatio: aspectRatio === "9:16" ? "9:16" : aspectRatio === "4:5" ? "4:3" : "1:1", 
+          aspectRatio: aspectRatio, 
         }
       }
     });
@@ -279,31 +301,7 @@ export const generateAIBackground = async (prompt: string, style: string, aspect
 };
 
 export const generateHeaderBackground = async (theme?: string): Promise<string> => {
-    try {
-        const fullPrompt = `Create a high-energy SUPERMARKET/RETAIL FLYER HEADER BACKGROUND banner. 
-        Theme/Prompt: ${theme || 'Vibrant, retail, promotional, sale events'}.
-        Style: Commercial abstract, dynamic, high saturation, 3D render style elements.
-        Elements: Use elements related to the theme (e.g., if Easter, use Eggs/Rabbits; if Sale, use tags/confetti).
-        Composition: Rectangular landscape aspect ratio (3:1). 
-        CRITICAL: The center area MUST be cleaner/lighter to allow for text overlay (Brand Name and Tagline). The sides can be busy.
-        NO TEXT in the image. NO watermarks.`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts: [{ text: fullPrompt }] },
-            config: {
-                imageConfig: { aspectRatio: "16:9" } 
-            }
-        });
-
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
-            }
-        }
-        throw new Error("Header generation failed");
-    } catch (error) {
-        console.error("Gemini Header API Error:", error);
-        throw error;
-    }
+    // This function is now a wrapper around the more generic generateAIBackground
+    // but keeps the specific 'retail header' logic if no specific style is passed.
+    return generateAIBackground(theme || 'Vibrant, retail, promotional, sale events', 'auto', '16:9');
 };
