@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PostConfig, SavedProject } from '../types';
-import { FolderOpen, Trash2, Download, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { FolderOpen, Trash2, Download, RefreshCw, CheckCircle2, Upload } from 'lucide-react';
 import * as storage from '../utils/storage';
 
 interface ProjectManagerProps {
@@ -12,6 +12,7 @@ interface ProjectManagerProps {
 const ProjectManager: React.FC<ProjectManagerProps> = ({ currentConfig, onLoadConfig }) => {
   const [projects, setProjects] = useState<SavedProject[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProjects = () => {
     setProjects(storage.getSavedProjects());
@@ -26,6 +27,35 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ currentConfig, onLoadCo
     if (confirm("Deseja excluir este projeto?")) {
         const updated = storage.deleteProjectFromStorage(id);
         setProjects(updated);
+    }
+  };
+
+  const handleRestoreBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const content = ev.target?.result as string;
+          const config = JSON.parse(content);
+          
+          // Validação básica se é um arquivo de configuração válido
+          if (config && typeof config === 'object') {
+             onLoadConfig(config);
+             alert("Backup restaurado com sucesso!");
+          } else {
+             alert("O arquivo selecionado não parece ser um backup válido.");
+          }
+        } catch (error) {
+          console.error(error);
+          alert("Erro ao ler o arquivo. Certifique-se de que é um JSON válido.");
+        }
+      };
+      reader.readAsText(file);
+    }
+    // Resetar o input para permitir selecionar o mesmo arquivo novamente se necessário
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
     }
   };
 
@@ -44,12 +74,27 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ currentConfig, onLoadCo
 
       {isOpen && (
         <div className="p-4 space-y-4 bg-white border-t border-gray-100">
-            <button 
-                onClick={() => storage.exportProjectToFile(currentConfig)}
-                className="w-full py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-indigo-100 transition-all"
-            >
-                <Download className="w-3 h-3" /> Baixar Backup JSON
-            </button>
+            <div className="flex gap-2">
+                <button 
+                    onClick={() => storage.exportProjectToFile(currentConfig)}
+                    className="flex-1 py-3 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 transition-all shadow-sm"
+                >
+                    <Download className="w-4 h-4" /> Baixar Backup
+                </button>
+                <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 py-3 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-all shadow-sm"
+                >
+                    <Upload className="w-4 h-4" /> Restaurar Backup
+                </button>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept=".json" 
+                    onChange={handleRestoreBackup}
+                />
+            </div>
 
             <div className="space-y-2">
                 <div className="flex items-center justify-between">

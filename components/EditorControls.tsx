@@ -5,6 +5,7 @@ import { DEFAULT_CONFIG } from '../constants';
 import { Wand2, Upload, Layout, Type, Palette, Download, Image as ImageIcon, Undo2, Redo2, ZoomIn, Smartphone, Crop, Stamp, Sparkles, Grid3X3, Type as TypeIcon, ImagePlus, X, Check, Table, RotateCw, Move, Layers, Box, Leaf, Gem, Sun, Paintbrush, Trash2, ArrowUpRight, Scissors, Eraser, Candy, Store, Droplets, Waves, Eye, Rocket, Frame, FileText, ChevronDown, Save, Cloud, Images, Maximize, RotateCcw, PartyPopper, AlertCircle, RefreshCcw, Percent, Megaphone, Shadow, Info, MapPin, AlignLeft, ShieldCheck, Search } from 'lucide-react';
 import ProjectManager from './ProjectManager';
 import { generateCatchyTagline, generateDesignSystem, enhanceImage, removeBackgroundAI, generateHeaderBackground } from '../services/geminiService';
+import AIBackgroundModal from './AIBackgroundModal';
 import * as storage from '../utils/storage';
 
 interface EditorControlsProps {
@@ -43,6 +44,9 @@ const EditorControls: React.FC<EditorControlsProps> = ({
   const [pendingHeaderImage, setPendingHeaderImage] = useState<string | null>(null);
   const [aiLayoutPrompt, setAiLayoutPrompt] = useState('');
   const [isGeneratingLayout, setIsGeneratingLayout] = useState(false);
+  
+  // State for the new AI Background Modal
+  const [isBgModalOpen, setIsBgModalOpen] = useState(false);
 
   const handleItemUpdate = (updates: Partial<GridItem>) => {
     const newGridItems = [...config.gridItems];
@@ -151,6 +155,11 @@ const EditorControls: React.FC<EditorControlsProps> = ({
       storage.saveProjectToStorage(`RESTORE_POINT_${new Date().toLocaleTimeString()}`, config);
       alert("Checkpoint criado com sucesso! Use a Galeria Local para restaurar se necessário.");
   };
+  
+  const handleBgModalApply = (img: string) => {
+      setPendingHeaderImage(img);
+      setIsBgModalOpen(false);
+  };
 
   const renderImageTools = () => {
     const item = config.gridItems[config.selectedGridIndex];
@@ -212,6 +221,8 @@ const EditorControls: React.FC<EditorControlsProps> = ({
 
   return (
     <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+      <AIBackgroundModal isOpen={isBgModalOpen} onClose={() => setIsBgModalOpen(false)} onApply={handleBgModalApply} />
+      
       {pendingHeaderImage && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
               <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
@@ -260,9 +271,19 @@ const EditorControls: React.FC<EditorControlsProps> = ({
                 <div className="bg-white p-3 rounded-xl border border-blue-200">
                     <label className="text-xs font-black text-blue-800 mb-1 block uppercase tracking-tighter">Gerar Fundo com IA</label>
                     <div className="flex gap-2 mb-2"><input type="text" value={headerPrompt} onChange={(e) => setHeaderPrompt(e.target.value)} placeholder="Tema (Ex: Natal, Páscoa)" className="flex-1 p-2 text-sm border border-blue-100 rounded-lg outline-none" /></div>
-                    <button onClick={handleGenerateHeader} disabled={isGeneratingHeader} className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-black flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 shadow-md">
-                        {isGeneratingHeader ? 'Criando...' : '✨ Gerar Fundo Mágico'}
-                    </button>
+                    
+                    {/* NEW AI BUTTON */}
+                    <div className="flex gap-2">
+                         <button onClick={handleGenerateHeader} disabled={isGeneratingHeader} className="flex-1 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-black flex items-center justify-center gap-2 hover:bg-blue-100 disabled:opacity-50 shadow-sm">
+                            {isGeneratingHeader ? '...' : 'Rápido'}
+                        </button>
+                        <button 
+                            onClick={() => setIsBgModalOpen(true)}
+                            className="flex-[2] py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-xs font-black flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 shadow-md transition-all active:scale-95"
+                        >
+                            <Palette className="w-4 h-4" /> Estúdio de Criação
+                        </button>
+                    </div>
                 </div>
                 {config.headerBackground && (
                     <div className="mt-2 space-y-2 p-2 bg-white rounded-xl border border-blue-100">
@@ -383,69 +404,29 @@ const EditorControls: React.FC<EditorControlsProps> = ({
                         <textarea rows={2} value={config.gridItems[config.selectedGridIndex].productDetails || ''} onChange={(e) => handleItemUpdate({ productDetails: e.target.value })} placeholder="Ex: Sabores diversos, 200g" className="w-full p-2.5 border border-slate-100 rounded-lg text-xs font-bold outline-none focus:border-slate-500 leading-tight" />
                         <div className="mt-2 flex items-center gap-3"><label className="text-[10px] font-black text-slate-400 uppercase flex-shrink-0">Letra</label><input type="range" min="10" max="60" step="1" value={config.gridItems[config.selectedGridIndex].detailsFontSize || 16} onChange={(e) => handleItemUpdate({ detailsFontSize: parseInt(e.target.value) })} className="flex-1 accent-slate-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer" /></div>
                     </div>
-                    <div className="flex gap-2">
-                        <div className="flex-1 bg-rose-50 p-2 rounded-xl border border-rose-100"><label className="text-[10px] font-black text-rose-600 mb-1 block">Preço "De"</label><input type="text" value={config.gridItems[config.selectedGridIndex].originalPrice || ''} onChange={(e) => handleItemUpdate({ originalPrice: e.target.value })} placeholder="R$ 0,00" className="w-full p-2 bg-white border border-rose-100 rounded-lg text-xs font-black text-rose-700 outline-none" /></div>
-                        <div className="flex-1 bg-emerald-50 p-2 rounded-xl border border-emerald-100"><label className="text-[10px] font-black text-emerald-600 mb-1 block">Preço "Por"</label><input type="text" value={config.gridItems[config.selectedGridIndex].price} onChange={(e) => handleItemUpdate({ price: e.target.value })} className="w-full p-2 bg-white border border-emerald-100 rounded-lg text-xs font-black text-emerald-700 outline-none" /></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section className="space-y-4 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 shadow-sm">
-            <h3 className="text-sm font-black text-emerald-900 uppercase tracking-wider flex items-center gap-2">
-                <div className="p-1.5 bg-emerald-600 rounded-lg text-white"><Megaphone className="w-4 h-4" /></div>
-                4. Finalização (CTA)
-            </h3>
-            <div className="space-y-4 bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
-                <div>
-                    <label className="text-xs font-black text-emerald-800 mb-1 block uppercase tracking-tighter">Frase de Chamada (Botão)</label>
-                    <input type="text" value={config.cta} onChange={(e) => onChange({ cta: e.target.value })} className="w-full p-2.5 border border-emerald-50 rounded-lg text-sm font-black outline-none focus:border-emerald-500 mb-2" />
-                    
-                    <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                            <label className="text-[10px] font-black text-emerald-400 uppercase mb-1 block flex justify-between"><span>Tam. Letra</span> <span>{config.ctaFontSize}px</span></label>
-                            <input type="range" min="10" max="150" step="2" value={config.ctaFontSize || 36} onChange={(e) => onChange({ ctaFontSize: parseInt(e.target.value) })} className="w-full h-1.5 accent-emerald-600 bg-emerald-50 rounded-lg appearance-none cursor-pointer" />
-                        </div>
-                        <div className="flex-shrink-0 w-16">
-                            <label className="text-[10px] font-black text-emerald-400 uppercase mb-1 block">Cor Texto</label>
-                            <input type="color" value={config.ctaTextColor || '#FFFFFF'} onChange={(e) => onChange({ ctaTextColor: e.target.value })} className="w-full h-8 rounded-lg cursor-pointer border border-emerald-50" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="pt-2 border-t border-emerald-50">
-                    <label className="text-xs font-black text-emerald-800 mb-2 block uppercase">Estilo do Fundo</label>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="flex flex-col">
-                            <label className="text-[10px] font-bold text-emerald-400 mb-1">Cor Fundo</label>
-                            <input type="color" value={config.ctaBgColor || '#B91C1C'} onChange={(e) => onChange({ ctaBgColor: e.target.value })} className="w-full h-8 rounded-lg cursor-pointer border border-emerald-50" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label className="text-[10px] font-bold text-emerald-400 mb-1 flex justify-between"><span>Opacidade</span> <span>{Math.round((config.ctaOpacity || 1) * 100)}%</span></label>
-                            <input type="range" min="0" max="1" step="0.1" value={config.ctaOpacity || 1} onChange={(e) => onChange({ ctaOpacity: parseFloat(e.target.value) })} className="w-full h-8 accent-emerald-600" />
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label className="text-[10px] font-black text-emerald-400 uppercase mb-1 block">Imagem de Fundo Rodapé</label>
-                        <div className="flex gap-2">
-                            <button onClick={() => ctaBgInputRef.current?.click()} className="flex-1 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-black flex items-center justify-center gap-2 hover:bg-emerald-100">
-                                <Upload className="w-3 h-3" /> Enviar Foto
-                            </button>
-                            <input ref={ctaBgInputRef} type="file" className="hidden" accept="image/*" onChange={handleCtaBgUpload} />
-                            {config.ctaBgImage && <button onClick={() => onChange({ ctaBgImage: null })} className="px-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg"><Trash2 className="w-4 h-4"/></button>}
-                        </div>
-                        {config.ctaBgImage && (
-                            <div className="mt-3 p-2 bg-emerald-50/30 rounded-lg border border-emerald-100">
-                                <label className="text-[10px] font-black text-emerald-400 uppercase mb-1 flex justify-between"><span>Zoom da Foto</span> <span>{config.ctaBgTransform?.scale.toFixed(1)}x</span></label>
-                                <input type="range" min="0.1" max="10" step="0.1" value={config.ctaBgTransform?.scale || 1} onChange={(e) => onChange({ ctaBgTransform: { ...(config.ctaBgTransform || { x: 0, y: 0, scale: 1 }), scale: parseFloat(e.target.value) } })} className="w-full accent-emerald-600 h-1 appearance-none cursor-pointer" />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-rose-50 p-2 rounded-xl border border-rose-100">
+                            <label className="text-[10px] font-black text-rose-600 mb-1 block">Preço "De"</label>
+                            <input type="text" value={config.gridItems[config.selectedGridIndex].originalPrice || ''} onChange={(e) => handleItemUpdate({ originalPrice: e.target.value })} placeholder="R$ 0,00" className="w-full p-2 bg-white border border-rose-100 rounded-lg text-xs font-black text-rose-700 outline-none" />
+                            <div className="mt-2 flex items-center gap-2">
+                                <TypeIcon size={12} className="text-rose-400 flex-shrink-0"/>
+                                <input type="range" min="8" max="40" step="1" value={config.gridItems[config.selectedGridIndex].originalPriceFontSize || 12} onChange={(e) => handleItemUpdate({ originalPriceFontSize: parseInt(e.target.value) })} className="flex-1 accent-rose-500 h-1 bg-rose-200 rounded-lg appearance-none cursor-pointer" />
                             </div>
-                        )}
+                        </div>
+                        <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+                            <label className="text-[10px] font-black text-emerald-600 mb-1 block">Preço "Por"</label>
+                            <input type="text" value={config.gridItems[config.selectedGridIndex].price} onChange={(e) => handleItemUpdate({ price: e.target.value })} className="w-full p-2 bg-white border border-emerald-100 rounded-lg text-xs font-black text-emerald-700 outline-none" />
+                            <div className="mt-2 flex items-center gap-2">
+                                <TypeIcon size={12} className="text-emerald-400 flex-shrink-0"/>
+                                <input type="range" min="20" max="120" step="2" value={config.gridItems[config.selectedGridIndex].priceFontSize || 56} onChange={(e) => handleItemUpdate({ priceFontSize: parseInt(e.target.value) })} className="flex-1 accent-emerald-500 h-1 bg-emerald-200 rounded-lg appearance-none cursor-pointer" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
+        <section className="space-y-4 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 shadow-sm"><h3 className="text-sm font-black text-emerald-900 uppercase tracking-wider flex items-center gap-2"><div className="p-1.5 bg-emerald-600 rounded-lg text-white"><Megaphone className="w-4 h-4" /></div>4. Finalização (CTA)</h3><div className="space-y-4 bg-white p-3 rounded-xl border border-emerald-200 shadow-sm"><div><label className="text-xs font-black text-emerald-800 mb-1 block uppercase tracking-tighter">Frase de Chamada (Botão)</label><input type="text" value={config.cta} onChange={(e) => onChange({ cta: e.target.value })} className="w-full p-2.5 border border-emerald-50 rounded-lg text-sm font-black outline-none focus:border-emerald-500" /></div><div className="grid grid-cols-2 gap-2"><div><label className="text-[10px] font-bold text-emerald-400 uppercase mb-1 block">Fundo</label><input type="color" value={config.ctaBgColor || '#B91C1C'} onChange={(e) => onChange({ ctaBgColor: e.target.value })} className="w-full h-8 rounded-lg cursor-pointer" /></div><div><label className="text-[10px] font-bold text-emerald-400 uppercase mb-1 block">Texto</label><input type="color" value={config.ctaTextColor || '#FFFFFF'} onChange={(e) => onChange({ ctaTextColor: e.target.value })} className="w-full h-8 rounded-lg cursor-pointer" /></div></div></div></section>
         <section className="space-y-4 p-4 rounded-2xl bg-rose-50 border border-rose-100 shadow-sm pb-8"><h3 className="text-sm font-black text-rose-900 uppercase tracking-wider flex items-center gap-2"><div className="p-1.5 bg-rose-600 rounded-lg text-white"><Percent className="w-4 h-4" /></div>5. Selos de Oferta</h3>{renderBadgeControls()}</section>
       </div>
     </div>

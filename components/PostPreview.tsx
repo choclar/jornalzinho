@@ -160,20 +160,6 @@ const PostPreview = forwardRef<HTMLDivElement, PostPreviewProps>(({
     );
   };
 
-  const renderWithBorder = (children: React.ReactNode, style: BorderStyle, roundedClass = 'rounded-xl') => {
-      if (!style || style === 'none') return <div className={`relative w-full h-full ${roundedClass} overflow-hidden`}>{children}</div>;
-      let wrapperClass = `relative w-full h-full ${roundedClass}`;
-      let innerClass = `w-full h-full ${roundedClass} overflow-hidden bg-white`;
-      if (style === 'gradient-hot') wrapperClass += ` p-[4px] bg-gradient-to-r from-yellow-400 via-red-500 to-pink-500`;
-      else if (style === 'gradient-cool') wrapperClass += ` p-[4px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600`;
-      else if (style === 'neon-blue') wrapperClass += ` border-[4px] border-cyan-400 shadow-[0_0_0_4px_#FFF]`;
-      else if (style === 'neon-pink') wrapperClass += ` border-[4px] border-pink-500 shadow-[0_0_0_4px_#FFF]`;
-      else if (style === 'gold-elegant') wrapperClass += ` border-[6px] border-yellow-400 border-dashed`;
-      else if (style === 'dashed-red') wrapperClass += ` border-[4px] border-dashed border-red-500`;
-      else if (style === 'double-black') wrapperClass += ` border-[6px] border-double border-gray-900`;
-      return <div className={wrapperClass}><div className={innerClass}>{children}</div></div>;
-  };
-
   const parsePrice = (priceStr: string) => {
     if (!priceStr) return 0;
     const cleanStr = priceStr.replace(/[^\d,]/g, '').replace(',', '.');
@@ -182,14 +168,13 @@ const PostPreview = forwardRef<HTMLDivElement, PostPreviewProps>(({
 
   const renderGridBlock = (item: GridItem, index: number) => {
       const isSelected = selectedGridIndex === index;
-      const borderStyle = item.borderStyle || 'none';
       const hasDiscount = item.originalPrice && item.originalPrice.trim() !== '';
       const nameSize = item.nameFontSize || 32;
       const detailsSize = item.detailsFontSize || 16;
       const priceSize = item.priceFontSize || 56;
       const originalPriceSize = item.originalPriceFontSize || 12;
       const priceValue = item.price.replace('R$', '').trim();
-      const [priceInteger, priceDecimal] = priceValue.split(',');
+      
       const cleanOriginalPrice = item.originalPrice ? item.originalPrice.replace(/^(de|DE|De)\s*/i, '').trim() : '';
       
       let discountPercentage = 0;
@@ -224,76 +209,107 @@ const PostPreview = forwardRef<HTMLDivElement, PostPreviewProps>(({
       const productNameClasses = "font-black leading-tight uppercase tracking-tight break-words whitespace-normal px-1 w-full text-center";
       const productDetailsClasses = "font-bold text-gray-500 uppercase leading-tight mt-1 block break-words whitespace-normal px-1 w-full text-center";
 
-      if (layout === 'layout-1') {
-        return (
-            <div key={index} className={`relative flex flex-col bg-white rounded-xl overflow-visible shadow-lg transition-all ${isSelected ? 'scale-[1.02] z-20 ring-4 ring-blue-500' : ''}`} style={{ height: '100%' }}>
-                {renderWithBorder((
-                    <div className="flex flex-col h-full relative bg-white overflow-hidden rounded-xl">
-                        <div className="flex-1 min-h-0 w-full overflow-hidden relative p-1">{ImageComponent}</div>
-                        <div className="flex-shrink-0 flex flex-col justify-end relative z-10 p-1">
-                            <div className="bg-white text-center mb-2">
-                                <h4 className={productNameClasses} style={{ fontSize: `${nameSize}px` }}>{item.productName}</h4>
-                                {item.productDetails && <span className={productDetailsClasses} style={{ fontSize: `${detailsSize}px` }}>{item.productDetails}</span>}
-                            </div>
-                            <div className="w-full py-2 px-1 flex flex-col items-center justify-center relative rounded-lg" style={{ backgroundColor: accentColor }}>
-                                {hasDiscount && <div className="absolute top-0.5 left-2 bg-black/20 px-1.5 rounded text-white/90 line-through font-bold whitespace-nowrap origin-left" style={{ fontSize: `${originalPriceSize}px`, transform: `scale(${config.discountBadgeScale || 1})` }}>DE {cleanOriginalPrice}</div>}
-                                <div className="flex items-baseline justify-center text-white leading-none mt-1"><span className="font-black mr-1 self-start" style={{ fontSize: `${Math.max(12, priceSize * 0.3)}px`, marginTop: '0.2em' }}>R$</span><span className="font-black tracking-tighter" style={{ fontSize: `${priceSize}px` }}>{priceValue}</span></div>
-                            </div>
-                        </div>
-                    </div>
-                ), borderStyle, 'rounded-xl')}
-            </div>
-        );
+      // DEFINIÇÃO DAS CORES BASEADA NO LAYOUT, MAS USANDO A ESTRUTURA DO LAYOUT 6
+      let layoutStyles = {
+          border: '#DC2626', // Vermelho padrão (layout-6)
+          badgeBg: '#DC2626',
+          badgeText: '#FFFFFF',
+          bottomBg: '#FCD34D', // Amarelo padrão (layout-6)
+          bottomBorder: '#DC2626',
+          titleColor: '#DC2626',
+          detailsColor: '#991B1B',
+          priceColor: '#000000',
+          oldPriceColor: '#991B1B'
+      };
+
+      if (layout === 'layout-1') { // Estilo Clean/Choc (Marrom e Creme)
+          layoutStyles = {
+              border: colors.primary || '#3E2723',
+              badgeBg: colors.primary || '#3E2723',
+              badgeText: '#FFFFFF',
+              bottomBg: colors.secondary || '#FFF8E1',
+              bottomBorder: colors.primary || '#3E2723',
+              titleColor: colors.primary || '#3E2723',
+              detailsColor: '#5D4037',
+              priceColor: colors.primary || '#3E2723',
+              oldPriceColor: '#8D6E63'
+          };
+      } else if (layout === 'layout-2') { // Estilo Pop (Azul e Amarelo)
+          layoutStyles = {
+              border: '#3B82F6', // Blue-500
+              badgeBg: '#3B82F6',
+              badgeText: '#FFFFFF',
+              bottomBg: '#FCD34D', // Yellow-300
+              bottomBorder: '#3B82F6',
+              titleColor: '#2563EB',
+              detailsColor: '#DB2777', // Pink para detalhes
+              priceColor: '#DC2626', // Preço vermelho
+              oldPriceColor: '#9CA3AF'
+          };
+      } else if (layout === 'layout-3') { // Estilo Cute (Rosa)
+          layoutStyles = {
+              border: '#EC4899', // Pink-500
+              badgeBg: '#EC4899',
+              badgeText: '#FFFFFF',
+              bottomBg: '#FDF2F8', // Pink-50
+              bottomBorder: '#EC4899',
+              titleColor: '#BE185D',
+              detailsColor: '#831843',
+              priceColor: '#BE185D',
+              oldPriceColor: '#F472B6'
+          };
+      } else if (layout === 'layout-4') { // Estilo Varejo (Azul Forte)
+          layoutStyles = {
+              border: '#1E3A8A', // Blue-900
+              badgeBg: '#1E3A8A',
+              badgeText: '#FFFFFF',
+              bottomBg: '#EFF6FF', // Blue-50
+              bottomBorder: '#1E3A8A',
+              titleColor: '#1E3A8A',
+              detailsColor: '#60A5FA',
+              priceColor: '#1E40AF',
+              oldPriceColor: '#94A3B8'
+          };
+      } else if (layout === 'layout-5') { // Estilo Premium (Marrom e Dourado)
+          layoutStyles = {
+              border: '#451a03', // Amber-950
+              badgeBg: '#451a03',
+              badgeText: '#fbbf24', // Amber-400
+              bottomBg: '#FEF3C7', // Amber-100
+              bottomBorder: '#451a03',
+              titleColor: '#451a03',
+              detailsColor: '#92400e',
+              priceColor: '#451a03',
+              oldPriceColor: '#b45309'
+          };
       }
       
-      if (layout === 'layout-2') {
-         return (
-             <div key={index} className={`relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-[4px_4px_0px_rgba(0,0,0,0.2)] transition-all ${isSelected ? 'scale-[1.02] z-20 ring-4 ring-blue-500' : ''}`} style={{ height: '100%' }}>
-                 {renderWithBorder((
-                     <div className="flex flex-col h-full relative bg-white">
-                        <div className="bg-white p-2 text-center border-b-2 border-gray-100 z-10">
-                            <h4 className={`text-blue-500 ${productNameClasses}`} style={{ fontSize: `${nameSize}px` }}>{item.productName}</h4>
-                            {item.productDetails && <span className={`text-pink-500 ${productDetailsClasses}`} style={{ fontSize: `${detailsSize}px` }}>{item.productDetails}</span>}
-                        </div>
-                        <div className="flex-1 min-h-0 w-full overflow-hidden relative p-2">{ImageComponent}</div>
-                        <div className="bg-yellow-400 p-1 flex flex-col items-center justify-end relative h-auto min-h-[60px]">
-                            <div className="flex items-end justify-center w-full">
-                                <div className="flex flex-col items-end mr-1 leading-none">{hasDiscount && <div className="text-red-800/80 line-through font-bold mb-0.5 whitespace-nowrap" style={{ fontSize: `${originalPriceSize}px` }}>DE {cleanOriginalPrice}</div>}<span className="font-bold text-red-600 text-sm mb-1">R$</span></div>
-                                <span className="font-black text-red-600 tracking-tighter leading-none" style={{ fontSize: `${priceSize}px`, textShadow: '2px 2px 0 #FFF' }}>{priceValue}</span>
-                            </div>
-                        </div>
-                     </div>
-                 ), borderStyle, 'rounded-2xl')}
-             </div>
-         );
-      }
-      
-      if (layout === 'layout-6') {
-          return (
-              <div key={index} className={`relative flex flex-col bg-white border-4 border-red-600 rounded-xl overflow-hidden shadow-xl transition-all ${isSelected ? 'scale-[1.02] z-20 ring-4 ring-blue-500' : ''}`} style={{ height: '100%' }}>
-                  <div className="bg-red-600 text-white text-center py-1 origin-center" style={{ transform: `scaleY(${config.discountBadgeScale || 1})` }}><h4 className="font-black uppercase tracking-widest" style={{ fontSize: `${Math.max(10, 10 * (config.discountBadgeScale || 1))}px` }}>OFERTA</h4></div>
-                  <div className="flex-1 p-1 relative min-h-0">{ImageComponent}</div>
-                  <div className="bg-yellow-300 p-2 text-center border-t-4 border-red-600 flex flex-col items-center">
-                      <h4 className={`text-red-600 leading-[1.1] mb-1 ${productNameClasses}`} style={{ fontSize: `${nameSize}px` }}>{item.productName}</h4>
-                      {item.productDetails && <span className={`text-red-800 leading-tight mb-1 ${productDetailsClasses}`} style={{ fontSize: `${detailsSize}px` }}>{item.productDetails}</span>}
-                      <div className="flex flex-col items-center justify-center">
-                          {hasDiscount && <span className="font-black text-red-800 line-through opacity-80 mb-0.5" style={{ fontSize: `${originalPriceSize}px` }}>De {cleanOriginalPrice}</span>}
-                          <div className="text-black font-black leading-none transform -skew-x-6"><span className="mr-1" style={{ fontSize: `${priceSize * 0.3}px` }}>R$</span><span style={{ fontSize: `${priceSize}px` }}>{priceValue}</span></div>
-                      </div>
-                  </div>
-              </div>
-          );
-      }
-      
+      // ESTRUTURA UNIFICADA (Baseada no Layout 6)
       return (
-          <div key={index} className={`relative flex flex-col bg-white rounded-xl overflow-hidden shadow-md border border-gray-100 transition-all ${isSelected ? 'scale-[1.02] z-20 ring-4 ring-blue-500' : ''}`} style={{ height: '100%' }}>
-              <div className="flex-1 min-h-0 p-2">{ImageComponent}</div>
-              <div className="p-3 text-center bg-gray-50/50">
-                  <h4 className={productNameClasses} style={{ fontSize: `${nameSize}px`, color: colors.primary }}>{item.productName}</h4>
-                  {item.productDetails && <span className={productDetailsClasses} style={{ fontSize: `${detailsSize}px` }}>{item.productDetails}</span>}
-                  <div className="mt-2 flex flex-col items-center">
-                      {hasDiscount && <span className="line-through text-red-400 font-bold" style={{ fontSize: `${originalPriceSize}px` }}>{item.originalPrice}</span>}
-                      <div className="font-black flex items-center" style={{ color: colors.accent }}>
+          <div key={index} className={`relative flex flex-col bg-white border-4 rounded-xl overflow-hidden shadow-xl transition-all ${isSelected ? 'scale-[1.02] z-20 ring-4 ring-blue-500' : ''}`} style={{ height: '100%', borderColor: layoutStyles.border }}>
+              <div className="text-center py-1 origin-center" style={{ backgroundColor: layoutStyles.badgeBg, color: layoutStyles.badgeText, transform: `scaleY(${config.discountBadgeScale || 1})` }}>
+                  <h4 className="font-black uppercase tracking-widest" style={{ fontSize: `${Math.max(10, 10 * (config.discountBadgeScale || 1))}px` }}>OFERTA</h4>
+              </div>
+              
+              <div className="flex-1 p-1 relative min-h-0">{ImageComponent}</div>
+              
+              <div className="p-2 text-center border-t-4 flex flex-col items-center" style={{ backgroundColor: layoutStyles.bottomBg, borderColor: layoutStyles.bottomBorder }}>
+                  <h4 className={`leading-[1.1] mb-1 ${productNameClasses}`} style={{ fontSize: `${nameSize}px`, color: layoutStyles.titleColor }}>{item.productName}</h4>
+                  
+                  {item.productDetails && (
+                    <span className={`leading-tight mb-1 ${productDetailsClasses}`} style={{ fontSize: `${detailsSize}px`, color: layoutStyles.detailsColor }}>
+                        {item.productDetails}
+                    </span>
+                  )}
+                  
+                  <div className="flex flex-col items-center justify-center">
+                      {hasDiscount && (
+                        <span className="font-black line-through opacity-80 mb-0.5" style={{ fontSize: `${originalPriceSize}px`, color: layoutStyles.oldPriceColor }}>
+                            De {cleanOriginalPrice}
+                        </span>
+                      )}
+                      
+                      <div className="font-black leading-none transform -skew-x-6" style={{ color: layoutStyles.priceColor }}>
                           <span className="mr-1" style={{ fontSize: `${priceSize * 0.3}px` }}>R$</span>
                           <span style={{ fontSize: `${priceSize}px` }}>{priceValue}</span>
                       </div>
@@ -323,7 +339,7 @@ const PostPreview = forwardRef<HTMLDivElement, PostPreviewProps>(({
   };
 
   return (
-    <div id="post-preview-container" ref={ref} className="w-full relative flex flex-col" style={{ width: POST_WIDTH, height: POST_HEIGHT, minHeight: POST_HEIGHT, transform: `scale(${scale})`, transformOrigin: 'top left', ...bgStyle }}>
+    <div id="post-preview-container" ref={ref} className="w-full relative flex flex-col" style={{ width: POST_WIDTH, minHeight: POST_HEIGHT, transform: `scale(${scale})`, transformOrigin: 'top left', ...bgStyle }}>
             {activeBackground && <img src={activeBackground} className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none opacity-50 mix-blend-overlay" />}
             
             <div className="w-full h-[400px] relative z-20 flex items-center justify-center overflow-hidden shadow-2xl flex-shrink-0">
